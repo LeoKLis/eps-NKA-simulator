@@ -1,36 +1,19 @@
 import sys
-import numpy as np
 
-def parse_transitions(states_arr, symbols_arr):
-    """
-    Parsira ``linije prijelaza`` u polje velicine ``[skup_stanja X skup_stanja]``
-    Format linije: [trenutno_stanje, delta -> trenutno_stanje1, trenutno_stanje2, ...]
+def print_arr(arr, sizei, sizej):
+    for i in range(0, sizei):
+        for j in range(0, sizej + 1):
+            print("%11s" % arr[i][j], end="\t")
+        print()
 
-    Parameters
-    ----------
-    nka_transition_array : string_array
-        Polje u koje se spremaju parsirani rezultat
-    states_arr : string_array
-        Polje stanja
-    symbols_arr : string_array
-        Polje simbola
-    
-    Returns
-    -------
-    nka_transition_array : string_array
-        Polje u koje se spremaju parsirani rezultat
-    """
-    nka_transition_array = np.full([states_arr.size, states_arr.size], fill_value=-1)
+def parse_transitions(states_arr, symbols_arr, states_dictionary, symbols_dictionary):
+    nka_arr = [[['#'] for i in range(len(symbols_arr)+1)] for j in range(len(states_arr))]
     for line in sys.stdin:
         temp = line[:-1].split("->")
-        currstate_delta = temp[0].split(",")
-        next_states = temp[1].split(",")
-        if np.isin("#", next_states):
-            continue
-        current_state_id = np.searchsorted(states_arr, currstate_delta[0])
-        for el in np.searchsorted(states_arr, next_states):
-            nka_transition_array[current_state_id][el] = np.searchsorted(symbols_arr, currstate_delta[1])
-    return nka_transition_array
+        curr = temp[0].split(",")
+        nxt = temp[1].split(",")
+        nka_arr[ states_dictionary[curr[0]] ][ symbols_dictionary[curr[1]] ] = nxt
+    return nka_arr
 
 def parse_inputs(sim_raw):
     sim_arr = []
@@ -38,6 +21,24 @@ def parse_inputs(sim_raw):
     for el in el_arr:
         sim_arr.append(el.split(","))
     return sim_arr
+
+def build_state_dictionary(states_arr):
+    thisdict = {}
+    i = 0
+    for el in states_arr:
+        thisdict[el] = i
+        i += 1
+    return thisdict
+
+def build_symbol_dictionary(symbols_arr):
+    thisdict = {}
+    thisdict["#"] = -1
+    i = 0
+    for el in symbols_arr:
+        thisdict[el] = i
+        i += 1
+    thisdict["$"] = len(symbols_arr)
+    return thisdict
 
 def main():
     sim_raw = input("")
@@ -48,26 +49,34 @@ def main():
 
     sim_arr = parse_inputs(sim_raw)
 
-    states_arr = np.array(states_raw.split(","))
-    symbols_arr = np.array(symbols_raw.split(","))
-    symbols_arr = np.insert(symbols_arr, 0, '$', axis=0)
-    acc_states_arr = np.array(acc_states_raw.split(","))
+    states_arr = states_raw.split(",")
+    states_dictionary = build_state_dictionary(states_arr)
 
-    nka_arr = parse_transitions(states_arr, symbols_arr)
+    symbols_arr = symbols_raw.split(",")
+    symbols_dictionary = build_symbol_dictionary(symbols_arr)
 
-    print(nka_arr)
-    print(np.searchsorted(nka_arr[2], 4))
+    nka_arr = parse_transitions(states_arr, symbols_arr, states_dictionary, symbols_dictionary)
+    
+    print_arr(nka_arr, len(states_arr), len(symbols_arr))    
+    print(sim_arr)
 
-    state_stack = []
-    init_state_id = np.searchsorted(states_arr, init_state)
-    for sim_instance in sim_arr:
-        state_stack.append(init_state_id)
-        print(states_arr[init_state_id], end="")
-        sim_indexes = np.searchsorted(symbols_arr, sim_instance)
-        for si in sim_indexes:
-            print("|", end="")
-            
+    curr_state = []
+    for sim in sim_arr:
+        curr_state.append(init_state)
+        print(curr_state[0], end="")
+        for el in sim:
+            if(curr_state != ["#"]):
+                #stao ovdje!!    
+                #curr_state = nka_arr[states_dictionary[curr_state]][symbols_dictionary[el]]
+
+                for i in range(0, len(curr_state)):
+                    if i == 0:
+                        print("|" + curr_state[i], end="")
+                    else:
+                        print("," + curr_state[i], end="")
         print()
+        curr_state.clear()
+
 
 if __name__ == "__main__":
     main()
